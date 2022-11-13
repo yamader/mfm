@@ -1,20 +1,24 @@
-CXX := clang++
+CXX       := clang++
+CXXFLAGS  := -O3
 
-CXXFLAGS      := -O3
-CXXFLAGS_WASM := --target=wasm32 -nostdlib -Wl,--no-entry
-
-.PHONY: all clean
-
-all: mfm.so mfm.wasm repl
-
+.PHONY: all clean run
+all: libmfm.so mfm.wasm repl
 clean:
-	rm -f mfm.so mfm.wasm repl
+	rm -f *.so* *.wasm repl
+run: repl
+	./repl
 
-mfm.so: mfm.cc
-	$(CXX) $(CXXFLAGS) -shared -o $@ $^
+## shared library
+SONAME := libmfm.so.1
+libmfm.so: mfm.cc
+	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(SONAME) -o $(SONAME) $^
+	ln -s $(SONAME) $@
 
+## Wasm
+CXXFLAGS_WASM := --target=wasm32 -nostdlib -Wl,--no-entry
 mfm.wasm: mfm.cc
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_WASM) -o $@ $^
 
-repl: repl.cc mfm.cc
+## REPL
+repl: repl.cc libmfm.so
 	$(CXX) $(CXXFLAGS) -o $@ $^
